@@ -13,11 +13,15 @@ import pathlib
 import re
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.request
 
 ENDPOINT = "https://models.github.ai/inference/chat/completions"
 MODEL = os.environ.get("MODEL", "openai/gpt-4.1")
+# Older GitHub Models endpoint (also accepts the GitHub token), used as a fallback.
+FALLBACK_ENDPOINT = "https://models.inference.ai.azure.com/chat/completions"
+FALLBACK_MODEL = "gpt-4.1"
 MAX_TRIES = 3
 PROJECTS = pathlib.Path("projects")
 
@@ -59,23 +63,45 @@ SLUG: short-kebab-case-name
 """
 
 
-def chat(messages):
+def _post(url, model, messages):
+    """Return (text, error). Never raises on bad responses."""
     token = os.environ["GITHUB_TOKEN"]
-    body = json.dumps({"model": MODEL, "messages": messages, "max_tokens": 4000}).encode()
+    body = json.dumps({"model": model, "messages": messages, "max_tokens": 4000}).encode()
     req = urllib.request.Request(
-        ENDPOINT, data=body, method="POST",
+        url, data=body, method="POST",
         headers={
             "Authorization": f"Bearer {token}",
-            "Accept": "application/vnd.github+json",
+            "Accept": "application/json",
             "X-GitHub-Api-Version": "2022-11-28",
             "Content-Type": "application/json",
         },
     )
     try:
         with urllib.request.urlopen(req, timeout=120) as r:
-            return json.load(r)["choices"][0]["message"]["content"]
+            raw, status = r.read().decode(errors="replace"), r.status
     except urllib.error.HTTPError as e:
-        sys.exit(f"GitHub Models error {e.code}: {e.read().decode()[:500]}")
+        return None, f"HTTP {e.code}: {e.read().decode(errors='replace')[:300]}"
+    except (urllib.error.URLError, TimeoutError) as e:
+        return None, f"network error: {e}"
+    try:
+        return json.loads(raw)["choices"][0]["message"]["content"], ""
+    except (ValueError, KeyError, IndexError, TypeError):
+        return None, f"HTTP {status}, unexpected body: {raw[:300]!r}"
+
+
+def chat(messages):
+    """Try the main endpoint, then the fallback, with a short retry on each."""
+    errors = []
+    for url, model in ((ENDPOINT, MODEL), (FALLBACK_ENDPOINT, FALLBACK_MODEL)):
+        for attempt in range(2):
+            text, err = _post(url, model, messages)
+            if text:
+                return text
+            msg = f"{url} [{model}] -> {err}"
+            errors.append(msg)
+            print(msg, file=sys.stderr)
+            time.sleep(5 * (attempt + 1))
+    sys.exit("All model calls failed:\n" + "\n".join(errors))
 
 
 def parse(text):
