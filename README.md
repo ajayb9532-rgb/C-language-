@@ -1,26 +1,21 @@
-# C Programming Practice & Utilities
+# C Data Structures & CLI Utilities
 
-A clean, modular collection of C programs demonstrating core language concepts, data structures, algorithms, and file handling.
+A modular C project featuring custom data structure implementations, dynamic memory management, and a multi-file CLI calculator using header files.
 
 ## Project Structure
 
-- `01_hello_and_io.c` — Basic console input/output and formatted strings
-- `02_arrays_and_pointers.c` — Pointer arithmetic, array traversal, and memory addresses
-- `03_recursion_and_math.c` — Recursive algorithms (factorial, Fibonacci, GCD)
-- `04_sorting_algorithms.c` — Bubble Sort and Selection Sort implementations
-- `05_structs_and_students.c` — Custom `struct` definitions and record management
-- `06_file_handling.c` — Reading from and writing to text files safely
-- `Makefile` — Build automation for compiling all programs at once
+- `01_dynamic_memory.c` — Dynamic array allocation, resizing with `realloc`, and leak-free cleanup
+- `02_linked_list.c` — Singly linked list with insert, delete, search, and traversal operations
+- `03_stack_and_queue.c` — Array-based Stack (LIFO) and Circular Queue (FIFO) implementations
+- `04_string_utilities.c` — Custom string manipulation functions (palindrome check, word count, case toggle)
+- `05_binary_search.c` — Iterative and recursive Binary Search with QuickSort preprocessing
+- `calc.h` & `calc.c` & `06_modular_calculator.c` — Multi-file C program demonstrating header separation
+- `Makefile` — Automated build rules for all executables
 
-## Compilation & Usage
+## Build & Run
 
-Using `gcc` directly:
-```bash
-gcc 01_hello_and_io.c -o hello_io
-./hello_io
-```
-
-Using `make`:
 ```bash
 make
+./01_dynamic_memory
+./06_modular_calculator
 ```
